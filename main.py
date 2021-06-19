@@ -11,12 +11,14 @@ vi) Escreva as conclusões da análise de dependência.
 '''
 
 import pandas as pd
-from IPython.display import display, HTML
+import copy
 
 comp_a = 'dados_grupo_7_comp_A'
 comp_b = 'dados_grupo_7_comp_B'
-wage_increase_a = 'dados_grupo_7_Incremento_salario_comp_A'
-wage_increase_b = 'dados_grupo_7_Incremento_salario_comp_B'
+
+
+# wage_increase_a = 'dados_grupo_7_Incremento_salario_comp_A'
+# wage_increase_b = 'dados_grupo_7_Incremento_salario_comp_B'
 
 
 def csv_loader(path):
@@ -32,105 +34,218 @@ def csv_loader(path):
 
 
 def create_table_gender_education(data):
+    gender_education_table = {"prim": {"masc": 0, "fem": 0, "total": 0}, "sec": {"masc": 0, "fem": 0, "total": 0},
+                              "terc": {"masc": 0, "fem": 0, "total": 0}, "total": {"masc": 0, "fem": 0, "total": 0}}
+    gender_education_raw = data[['Sexo', 'Educ']].to_dict()
 
-    company = data[['Sexo', 'Educ']].value_counts()
+    for i in gender_education_raw["Educ"]:
+        if gender_education_raw["Educ"][i] == "prim":
+            if gender_education_raw["Sexo"][i] == "masc":
+                gender_education_table["prim"]["masc"] += 1
+                gender_education_table["total"]["masc"] += 1
+            else:
+                gender_education_table["prim"]["fem"] += 1
+                gender_education_table["total"]["fem"] += 1
+            gender_education_table["prim"]["total"] += 1
+        elif gender_education_raw["Educ"][i] == "sec":
+            if gender_education_raw["Sexo"][i] == "masc":
+                gender_education_table["sec"]["masc"] += 1
+                gender_education_table["total"]["masc"] += 1
+            else:
+                gender_education_table["sec"]["fem"] += 1
+                gender_education_table["total"]["fem"] += 1
+            gender_education_table["sec"]["total"] += 1
+        else:
+            if gender_education_raw["Sexo"][i] == "masc":
+                gender_education_table["terc"]["masc"] += 1
+                gender_education_table["total"]["masc"] += 1
+            else:
+                gender_education_table["terc"]["fem"] += 1
+                gender_education_table["total"]["fem"] += 1
+            gender_education_table["terc"]["total"] += 1
+        gender_education_table["total"]["total"] += 1
 
-    b = data['Sexo'].value_counts()
-    for i in b.keys():
-        company.loc[(i, "total")] = b[i]
+    return gender_education_table
 
-    c = data['Educ'].value_counts()
-    for i in c.keys():
-        company.loc[("total", i)] = c[i]
 
-    company.loc[("total", "total")] = sum(company["total"].values)
+def create_table_gender_wage(data):
+    gender_wage_table = {}
+    salary_range = [0, 4, 8, 12, 16, 20, 24]
+    gender_wage_raw = data[['Sexo', 'Sal']].to_dict()
 
-    return company
+    for r in range(1, len(salary_range)):
+        gender_sub_table = {"masc": 0, "fem": 0}
+        for i in gender_wage_raw["Sexo"]:
+            if salary_range[r - 1] <= gender_wage_raw["Sal"][i] < salary_range[r]:
+                if gender_wage_raw["Sexo"][i] == "masc":
+                    gender_sub_table["masc"] += 1
+                else:
+                    gender_sub_table["fem"] += 1
+
+        gender_wage_table["(" + str(salary_range[r - 1]) + ", " + str(salary_range[r]) + "]"] = gender_sub_table
+
+    return gender_wage_table
+
+
+def create_table_education_wage(data):
+    education_wage_table = {}
+    salary_range = [0, 4, 8, 12, 16, 20, 24]
+    education_wage_raw = data[['Educ', 'Sal']].to_dict()
+
+    for r in range(1, len(salary_range)):
+        education_sub_table = {"prim": 0, "sec": 0, "terc": 0}
+        for i in education_wage_raw["Educ"]:
+            if salary_range[r - 1] <= education_wage_raw["Sal"][i] < salary_range[r]:
+                if education_wage_raw["Educ"][i] == "prim":
+                    education_sub_table["prim"] += 1
+                elif education_wage_raw["Educ"][i] == "sec":
+                    education_sub_table["sec"] += 1
+                else:
+                    education_sub_table["terc"] += 1
+
+        education_wage_table["(" + str(salary_range[r - 1]) + ", " + str(salary_range[r]) + "]"] = education_sub_table
+
+    return education_wage_table
+
+
+def create_table_gender_role(data):
+    gender_role_table = {"gerencial": {"masc": 0, "fem": 0, "total": 0}, "outro": {"masc": 0, "fem": 0, "total": 0},
+                         "total": {"masc": 0, "fem": 0, "total": 0}}
+    gender_role_raw = data[['Sexo', 'cargo']].to_dict()
+
+    for i in gender_role_raw["cargo"]:
+        if gender_role_raw["cargo"][i] == "gerencial":
+            if gender_role_raw["Sexo"][i] == "masc":
+                gender_role_table["gerencial"]["masc"] += 1
+                gender_role_table["total"]["masc"] += 1
+            else:
+                gender_role_table["gerencial"]["fem"] += 1
+                gender_role_table["total"]["fem"] += 1
+            gender_role_table["gerencial"]["total"] += 1
+        else:
+            if gender_role_raw["Sexo"][i] == "fem":
+                gender_role_table["outro"]["fem"] += 1
+                gender_role_table["total"]["fem"] += 1
+            else:
+                gender_role_table["outro"]["masc"] += 1
+                gender_role_table["total"]["masc"] += 1
+            gender_role_table["outro"]["total"] += 1
+        gender_role_table["total"]["total"] += 1
+
+    return gender_role_table
+
+
+def create_table_role_wage(data):
+    role_wage_table = {
+        "gerencial": {"(0, 4]": 0, "(4, 8]": 0, "(8, 12]": 0, "(12, 16]": 0, "(16, 20]": 0, "(20, 24]": 0},
+        "outro": {"(0, 4]": 0, "(4, 8]": 0, "(8, 12]": 0, "(12, 16]": 0, "(16, 20]": 0, "(20, 24]": 0}}
+    cargos = ["gerencial", "outro"]
+    role_wage_raw = data[['cargo', 'Sal']].to_dict()
+
+    for cargo in cargos:
+        for i in role_wage_raw["cargo"]:
+            if role_wage_raw["cargo"][i] == cargo:
+                if 0 <= role_wage_raw["Sal"][i] < 4:
+                    role_wage_table[cargo]["(0, 4]"] += 1
+                elif 4 <= role_wage_raw["Sal"][i] < 8:
+                    role_wage_table[cargo]["(4, 8]"] += 1
+                elif 8 <= role_wage_raw["Sal"][i] < 12:
+                    role_wage_table[cargo]["(8, 12]"] += 1
+                elif 12 <= role_wage_raw["Sal"][i] < 16:
+                    role_wage_table[cargo]["(12, 16]"] += 1
+                elif 16 <= role_wage_raw["Sal"][i] < 20:
+                    role_wage_table[cargo]["(16, 20]"] += 1
+                else:
+                    role_wage_table[cargo]["(20, 24]"] += 1
+
+    return role_wage_table
 
 
 def percentage_by_columns(table):
-    percentage_table = table.copy()
+    percentage_table = copy.deepcopy(table)
 
-    for i in table.keys():
-        percentage_table.loc[(i[0], i[1])] = round((table[i[0]][i[1]]/table[i[0]]["total"])*100)
+    for i in percentage_table["total"]:
+        for j in percentage_table:
+            for k in percentage_table[j]:
+                if k == i:
+                    # print(table[j][k], end=" -> ")
+                    percentage_table[j][k] = round((percentage_table[j][k] / percentage_table["total"][i]) * 100)
+                    # print(table[j][k])
 
     return percentage_table
 
 
-def show_table(table, company_name):
-    columns = set([])
-    rows = set([])
+def show_table(company, item_name):
+    table = company[item_name]
+    # print(table)
+    print(5 * " " + company["name"] + " " + item_name + "\n" + (len(company["name"]) + len(item_name) + 11) * "-",
+          end="\n            ")
 
-    for i in table.keys():
-        columns.add(i[0])
-        rows.add(i[1])
+    header = list(list(table.items())[0][1].keys())
 
-    columns = sorted(columns)
-    rows = sorted(rows)
-
-    print(5*" " + company_name + "\n" + 20*"-", end="\n      ")
-    for i in columns:
+    for i in header:
         print(i, end=" ")
     print()
-
-    for i in rows:
-        aux = i
-        while len(aux) < 5:
+    for j in table:
+        aux = j
+        while len(aux) < 11:
             aux += " "
         print(aux, end=" ")
-
-        for j in columns:
-            digit = str(table[j][i])
-            while len(digit) < 3:
-                digit = " " + digit
-            print(digit, end="  ")
-
+        for k in table[j]:
+            aux = str(table[j][k])
+            while len(aux) < len(k):
+                aux = " " + aux
+            print(aux, end=" ")
         print()
-    print(20*"-", end="\n\n")
+    print()
 
 
 def main():
-    company_a = {}
-    company_b = {}
+    company_a = {"name": "Companhia A"}
+    company_b = {"name": "Companhie B"}
 
     data_a = csv_loader(comp_a)
     data_b = csv_loader(comp_b)
-    #data_wage_a = csv_loader(wage_increase_a)
-    #data_wage_b = csv_loader(wage_increase_b)
-
-    #print(data_a.head())
-    #print(data_a.loc[1])    #comeca do 1
-    #print(data_a.iloc[0])   #comeca do 0
-    #print(data_a.iloc[0].Sexo)  # comeca do 0
-    #print(data_a[['Sexo', 'cargo']])
-    #print(data_a.Sexo)  #so a coluna data
-
-    #data["Indexes"] = data["Sexo"].str.find("masc")
+    # data_wage_a = csv_loader(wage_increase_a)
+    # data_wage_b = csv_loader(wage_increase_b)
 
     company_a["gender_education"] = create_table_gender_education(data_a)
+    company_a["gender_education_percent"] = percentage_by_columns(company_a["gender_education"])
     company_b["gender_education"] = create_table_gender_education(data_b)
+    company_b["gender_education_percent"] = percentage_by_columns(company_b["gender_education"])
 
-    gender_education_percentage_a = percentage_by_columns(company_a["gender_education"])
-    gender_education_percentage_b = percentage_by_columns(company_b["gender_education"])
-    show_table(gender_education_percentage_a, "Companhia A")
-    show_table(gender_education_percentage_b, "Companhia B")
-    #print(company_a)
+    company_a["gender_wage"] = create_table_gender_wage(data_a)
+    company_b["gender_wage"] = create_table_gender_wage(data_b)
 
-    #print(data_a)
-    #print(data_a.Sal.truncate(axis="Sal"))
+    company_a["education_wage"] = create_table_education_wage(data_a)
+    company_b["education_wage"] = create_table_education_wage(data_b)
 
-    #print(data_a['Sal'].value_counts())
+    company_a["gender_role"] = create_table_gender_role(data_a)
+    company_a["gender_role_percent"] = percentage_by_columns(company_a["gender_role"])
+    company_b["gender_role"] = create_table_gender_role(data_b)
+    company_b["gender_role_percent"] = percentage_by_columns(company_b["gender_role"])
 
-    #print(data_a.Sexo)
+    company_a["role_wage"] = create_table_role_wage(data_a)
+    company_b["role_wage"] = create_table_role_wage(data_b)
 
+    # show_table(company_a, "gender_education")
+    # show_table(company_b, "gender_education")
+    show_table(company_a, "gender_education_percent")
+    show_table(company_b, "gender_education_percent")
 
+    # show_table(company_a, "gender_wage")
+    # show_table(company_b, "gender_wage")
 
-    '''
+    # show_table(company_a, "education_wage")
+    # show_table(company_b, "education_wage")
 
-    #dividir faixas salariais
+    # show_table(company_a, "gender_role")
+    # show_table(company_b, "gender_role")
+    show_table(company_a, "gender_role_percent")
+    show_table(company_b, "gender_role_percent")
 
-    a_total_cargo_gerencial = 
-    a_total_cargo_outro = '''
+    # show_table(company_a, "role_wage")
+    # show_table(company_b, "role_wage")
 
 
 main()
