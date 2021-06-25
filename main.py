@@ -11,19 +11,17 @@ vi) Escreva as conclusões da análise de dependência.
 '''
 
 import matplotlib
+
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import copy
-
-import numpy as np
+import openpyxl
+from openpyxl import load_workbook
+import statistics
 
 comp_a = 'dados_grupo_7_comp_A'
 comp_b = 'dados_grupo_7_comp_B'
-
-
-# wage_increase_a = 'dados_grupo_7_Incremento_salario_comp_A'
-# wage_increase_b = 'dados_grupo_7_Incremento_salario_comp_B'
 
 
 def csv_loader(path):
@@ -98,6 +96,40 @@ def create_table_gender_wage(data):
 
     return gender_wage_table, gender_wage_table_raw
 
+
+def mean(data):
+    x = []
+    variance = {}
+    total = 0
+    q = 0
+
+    for i in data:
+        x.append(statistics.mean(data[i]))
+        print("Media " + str(i) + ": %.2f" % (x[-1]))
+        y = 0
+        for j in data[i]:
+            y += (j - x[-1])**2
+            q += j
+
+        variance[i] = y/(len(data[i])-1)
+        print("Variancia %s: %.2f" % (i, variance[i]))
+        print("Total %s: %i" % (i, len(data[i])))
+        total += len(data[i])
+
+    media_total = q/total
+    aux = 0
+    for i in data:
+        for j in data[i]:
+            aux += (j-media_total)**2
+
+    total_variance = aux / (total - 1)
+
+    z = 0
+    for i in variance:
+        z += variance[i] * len(data[i])
+    variance_mean = z/total
+    print("Media da variancia: %.2f" % variance_mean)
+    print("Grau de Associacao: %.2f" % (1-(variance_mean/total_variance)))
 
 def create_table_education_wage(data):
     education_wage_table = {}
@@ -193,9 +225,21 @@ def percentage_by_columns(table):
     return percentage_table
 
 
+def pearson_qui_quad(table):
+    qui_sum = 0
+
+    for i in table:
+        for j in table[i]:
+            if i != "total" and j != "total":
+                qui_sum += ((table[i][j] - table[i]["total"]) ** 2) / table[i]["total"]
+
+    #print("Qui-quadrado: ", qui_sum)
+
+    return qui_sum
+
+
 def show_table(company, item_name):
     table = company[item_name]
-    print(table)
     print(5 * " " + company["name"] + " " + item_name + "\n" + (len(company["name"]) + len(item_name) + 11) * "-",
           end="\n            ")
 
@@ -217,6 +261,10 @@ def show_table(company, item_name):
         print()
     print()
 
+    qui_quad = item_name + "_qui_quad"
+    if qui_quad in company:
+        print("Qui-quadrado: %.2f" % (company[qui_quad]), end="\n\n")
+
 
 def show_box_plot(table, item_name, x_labels, x_label, y_label="Salário"):
     wage = []
@@ -226,7 +274,7 @@ def show_box_plot(table, item_name, x_labels, x_label, y_label="Salário"):
 
     fig, ax = plt.subplots()
     ax.set_yticks(ticks)
-    #ax.set_xticks([1, 2])
+    # ax.set_xticks([1, 2])
     ax.set_xticklabels(x_labels)
 
     plt.xlabel(x_label, fontsize=12)
@@ -236,53 +284,102 @@ def show_box_plot(table, item_name, x_labels, x_label, y_label="Salário"):
     plt.show()
 
 
+def format_and_save(sheet, data, name):
+    row = 1
+    column = 2
+    columns = list(data[name].values())
+
+    for item in columns[0].keys():
+        sheet.cell(row=row, column=column, value=item)
+        column += 1
+
+    row += 1
+
+    for key, values in data[name].items():
+        column = 1
+        sheet.cell(row=row, column=column, value=key)
+        for element_key, element in values.items():
+            column += 1
+            sheet.cell(row=row, column=column, value=element)
+        row += 1
+
+
+def export(data):
+    #from openpyxl import load_workbook
+    wb2 = load_workbook('my_workbook1.xlsx')
+    wb2.create_sheet("sheet 1 owo")
+    ws4 = wb2["sheet 1 owo"]
+
+    # Create the workbook and sheet for Excel
+    #workbook = openpyxl.Workbook()
+    #sheet = workbook.active
+    format_and_save(ws4, data, "gender_education")
+
+
+    wb2.save(filename="my_workbook1.xlsx")
+
+
 def main():
     company_a = {"name": "Companhia A"}
-    company_b = {"name": "Companhie B"}
+    company_b = {"name": "Companhia B"}
 
     data_a = csv_loader(comp_a)
     data_b = csv_loader(comp_b)
-    # data_wage_a = csv_loader(wage_increase_a)
-    # data_wage_b = csv_loader(wage_increase_b)
 
-    company_a["gender_education"] = create_table_gender_education(data_a)
+    # ------------------1-------------------
+    '''company_a["gender_education"] = create_table_gender_education(data_a)
     company_a["gender_education_percent"] = percentage_by_columns(company_a["gender_education"])
+    company_a["gender_education_qui_quad"] = pearson_qui_quad(company_a["gender_education_percent"])
     company_b["gender_education"] = create_table_gender_education(data_b)
     company_b["gender_education_percent"] = percentage_by_columns(company_b["gender_education"])
-    # show_table(company_a, "gender_education")
-    # show_table(company_b, "gender_education")
-    #show_table(company_a, "gender_education_percent")
-    #show_table(company_b, "gender_education_percent")
+    company_b["gender_education_qui_quad"] = pearson_qui_quad(company_b["gender_education_percent"])
+    show_table(company_a, "gender_education")
+    show_table(company_b, "gender_education")
+    show_table(company_a, "gender_education_percent")
+    show_table(company_b, "gender_education_percent")
+    export(company_b)'''
 
-    company_a["gender_wage"], company_a["gender_wage_raw"] = create_table_gender_wage(data_a)
+    # ------------------2-------------------
+    '''company_a["gender_wage"], company_a["gender_wage_raw"] = create_table_gender_wage(data_a)
     company_b["gender_wage"], company_b["gender_wage_raw"] = create_table_gender_wage(data_b)
-    # show_table(company_a, "gender_wage")
-    # show_table(company_b, "gender_wage")
-    # show_box_plot(company_a["gender_wage_raw"], "Companhia A", ["Masculino", "Feminino"], "Gênero")
-    # show_box_plot(company_b["gender_wage_raw"], "Companhia B", ["Masculino", "Feminino"], "Gênero")
+    show_table(company_a, "gender_wage")
+    mean(company_a["gender_wage_raw"])
+    show_table(company_b, "gender_wage")
+    mean(company_b["gender_wage_raw"])
+    show_box_plot(company_a["gender_wage_raw"], "Companhia A", ["Masculino", "Feminino"], "Gênero")
+    show_box_plot(company_b["gender_wage_raw"], "Companhia B", ["Masculino", "Feminino"], "Gênero")'''
 
-    company_a["education_wage"], company_a["education_wage_raw"] = create_table_education_wage(data_a)
+    # ------------------3-------------------
+    '''company_a["education_wage"], company_a["education_wage_raw"] = create_table_education_wage(data_a)
     company_b["education_wage"], company_b["education_wage_raw"] = create_table_education_wage(data_b)
-    # show_table(company_a, "education_wage")
-    # show_table(company_b, "education_wage")
-    # show_box_plot(company_a["education_wage_raw"], "Companhia A", ["Primaria", "Secundária", "Terceária"], "Nível de Escolaridade")
-    # show_box_plot(company_b["education_wage_raw"], "Companhia B", ["Primaria", "Secundária", "Terceária"], "Nível de Escolaridade")
+    show_table(company_a, "education_wage")
+    mean(company_a["education_wage_raw"])
+    show_table(company_b, "education_wage")
+    mean(company_b["education_wage_raw"])
+    show_box_plot(company_a["education_wage_raw"], "Companhia A", ["Primaria", "Secundária", "Terceária"], "Nível de Escolaridade")
+    show_box_plot(company_b["education_wage_raw"], "Companhia B", ["Primaria", "Secundária", "Terceária"], "Nível de Escolaridade")'''
 
-    company_a["gender_role"] = create_table_gender_role(data_a)
+    # ------------------4-------------------
+    '''company_a["gender_role"] = create_table_gender_role(data_a)
     company_a["gender_role_percent"] = percentage_by_columns(company_a["gender_role"])
+    company_a["gender_role_qui_quad"] = pearson_qui_quad(company_a["gender_role_percent"])
     company_b["gender_role"] = create_table_gender_role(data_b)
     company_b["gender_role_percent"] = percentage_by_columns(company_b["gender_role"])
-    # show_table(company_a, "gender_role")
-    # show_table(company_b, "gender_role")
-    #show_table(company_a, "gender_role_percent")
-    #show_table(company_b, "gender_role_percent")
+    company_b["gender_role_qui_quad"] = pearson_qui_quad(company_b["gender_role_percent"])
+    show_table(company_a, "gender_role")
+    show_table(company_b, "gender_role")
+    show_table(company_a, "gender_role_percent")
+    show_table(company_b, "gender_role_percent")'''
 
-    company_a["role_wage"], company_a["role_wage_raw"] = create_table_role_wage(data_a)
+    # ------------------5-------------------
+    '''company_a["role_wage"], company_a["role_wage_raw"] = create_table_role_wage(data_a)
     company_b["role_wage"], company_b["role_wage_raw"] = create_table_role_wage(data_b)
-    # show_table(company_a, "role_wage")
-    # show_table(company_b, "role_wage")
-    # show_box_plot(company_a["role_wage_raw"], "Companhia A", ["Gerencial", "Outro"], "Cargo")
-    # show_box_plot(company_b["role_wage_raw"], "Companhia B", ["Gerencial", "Outro"], "Cargo")
-
+    show_table(company_a, "role_wage")
+    mean(company_a["role_wage_raw"])
+    show_table(company_b, "role_wage")
+    mean(company_b["role_wage_raw"])
+    show_box_plot(company_a["role_wage_raw"], "Companhia A", ["Gerencial", "Outro"], "Cargo")
+    show_box_plot(company_b["role_wage_raw"], "Companhia B", ["Gerencial", "Outro"], "Cargo")
+'''
 
 main()
