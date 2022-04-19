@@ -1,6 +1,6 @@
 # ME323 - Introdução aos Modelos Probabilísticos
 
-Desenvolvimento de algoritmo para automatização na resolução de partes do relatrio apresentado.
+Desenvolvimento de algoritmo para automatização na resolução de partes do relatório apresentado.
 
 ## Descrição do trabalho
 [Descricao](./Descrição&#32;do&#32;Trabalho.pdf)
